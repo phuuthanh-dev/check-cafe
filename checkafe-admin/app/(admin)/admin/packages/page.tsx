@@ -20,6 +20,13 @@ interface Package {
   updatedAt: string
 }
 
+interface PaginationMetadata {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 interface UserPackage {
   _id: string
   user_id: {
@@ -46,11 +53,18 @@ export default function PackagesPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [editPackage, setEditPackage] = useState<Package | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [paginationMetadata, setPaginationMetadata] = useState<PaginationMetadata>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1
+  })
 
   useEffect(() => {
     if (tab === "packages") fetchPackages()
-    if (tab === "userPackages") fetchUserPackages()
-  }, [tab])
+    if (tab === "userPackages") fetchUserPackages(currentPage)
+  }, [tab, currentPage])
 
   const fetchPackages = async () => {
     setLoading(true)
@@ -64,11 +78,17 @@ export default function PackagesPage() {
     }
   }
 
-  const fetchUserPackages = async () => {
+  const fetchUserPackages = async (page = 1) => {
     setLoading(true)
     try {
-      const res = await authorizedAxiosInstance.get("/v1/user-packages")
+      const res = await authorizedAxiosInstance.get(`/v1/user-packages?page=${page}`)
       setUserPackages(res.data?.data?.data || [])
+      setPaginationMetadata(res.data?.data?.metadata || {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 1
+      })
     } catch (err) {
       // handle error
     } finally {
@@ -291,6 +311,60 @@ export default function PackagesPage() {
                     </TableBody>
                   </Table>
                 </div>
+                {!loading && filteredUserPackages.length > 0 && (
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-gray-500">
+                      Hiển thị {((paginationMetadata.page - 1) * paginationMetadata.limit) + 1} đến{' '}
+                      {Math.min(paginationMetadata.page * paginationMetadata.limit, paginationMetadata.total)} trong số{' '}
+                      {paginationMetadata.total} kết quả
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCurrentPage(prev => {
+                            const newPage = prev - 1
+                            fetchUserPackages(newPage)
+                            return newPage
+                          })
+                        }}
+                        disabled={currentPage <= 1}
+                      >
+                        Trang trước
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: paginationMetadata.totalPages }, (_, i) => i + 1).map(page => (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage(page)
+                              fetchUserPackages(page)
+                            }}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCurrentPage(prev => {
+                            const newPage = prev + 1
+                            fetchUserPackages(newPage)
+                            return newPage
+                          })
+                        }}
+                        disabled={currentPage >= paginationMetadata.totalPages}
+                      >
+                        Trang sau
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
