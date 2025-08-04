@@ -79,6 +79,41 @@ class PaymentService {
         const result = await getPaginatedData(paginateOptions);
         return result;
     }
+
+    async getAllShopPayments(req) {
+        const {
+            page = 1,
+            limit = 10,
+            search
+        } = req.query;
+
+        const query = {
+            payment_type: "shop_package"
+        };
+        const paginateOptions = {
+            model: paymentModel,
+            query,
+            page,
+            limit,
+            select: getSelectData([
+                "_id",
+                "orderCode",
+                "amount",
+                "status",
+                "created_at",
+                "updated_at"
+            ]),
+            populate: [
+                { path: "package_id", select: "_id name description duration price target_type" },
+                { path: "shop_id", select: "_id name address phone owner_id", populate: { path: "owner_id", select: "_id full_name email" } }
+            ],
+            search,
+            searchFields: ["orderCode"],
+            sort: { created_at: -1 }
+        };
+        const result = await getPaginatedData(paginateOptions);
+        return result;
+    }
     async getPaymentStatus(req) {
         const { paymentId } = req.params;
         if (!paymentId) {

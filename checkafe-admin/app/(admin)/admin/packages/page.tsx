@@ -58,6 +58,7 @@ interface ShopPackage {
       email: string
     }
   }
+  orderCode: string
   package_id: Package
   payment_id: {
     amount: number
@@ -511,7 +512,7 @@ export default function PackagesPage() {
                               {sp.package_id?.price?.toLocaleString()}đ
                             </div>
                             <div className="text-sm text-gray-500">
-                              Mã: {sp.payment_id?.orderCode}
+                              Mã: {sp.orderCode}
                             </div>
                           </TableCell>
                           {/* <TableCell className="text-center">
