@@ -186,8 +186,10 @@ class userService {
   };
 
   // Admin manage users
-  getUsers = async ({ page = 1, limit = 10, role, is_active, search }) => {
+  getUsers = async ({ page = 1, limit = 10, role, is_active, search, sortBy = "createdAt", sortOrder = "desc" }) => {
     const query = {};
+    
+    // Validate and add role to query if provided
     if (role) {
       const validRoles = Object.values(USER_ROLE);
       if (!validRoles.includes(role)) {
@@ -197,10 +199,18 @@ class userService {
       }
       query.role = role;
     }
+  
+    // Add is_active to query if provided
     if (is_active !== undefined) {
-      query.is_active = is_active;
+      query.is_active = is_active === "true" || is_active === true;
     }
-
+  
+    // Construct sort object based on sortBy and sortOrder
+    const sort = {};
+    if (sortBy) {
+      sort[sortBy] = sortOrder === "asc" ? 1 : -1;
+    }
+  
     return await getPaginatedData({
       model: userModel,
       query,
@@ -209,8 +219,10 @@ class userService {
       select: "_id full_name email avatar role is_active createdAt",
       search,
       searchFields: ["full_name", "email"],
+      sort,
     });
   };
+  
 
   manageUserAccount = async ({ userId, role, is_active }) => {
     try {

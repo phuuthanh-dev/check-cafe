@@ -9,7 +9,9 @@ export const injectStore = (mainStore: any) => {
 
 // Khởi tạo đối tượng axios
 let authorizedAxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: process.env.NODE_ENV === 'production' 
+    ? '/api' 
+    : 'http://localhost:3000/api',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

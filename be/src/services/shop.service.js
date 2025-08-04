@@ -3584,6 +3584,105 @@ const getShopTimeBasedAnalytics = async (req) => {
   }
 };
 
+// Buy shop package method
+const buyShopPackage = async (req) => {
+  const { userId, shop_id } = req.user;
+  const { packageId } = req.body;
+  
+  if (!packageId) {
+    throw new BadRequestError("Package ID is required");
+  }
+  
+  if (!shop_id) {
+    throw new BadRequestError("Shop owner must have a shop to buy packages");
+  }
+  
+  // Check if package exists and is for shops
+  const packageModel = require("../models/package.model");
+  const shopPackage = await packageModel.findOne({ 
+    _id: packageId, 
+    target_type: 'shop'
+  });
+  
+  if (!shopPackage) {
+    throw new BadRequestError("Shop package not found");
+  }
+  
+  // Check if shop exists
+  const shop = await shopModel.findById(shop_id);
+  if (!shop) {
+    throw new BadRequestError("Shop not found");
+  }
+  
+  // Import required modules
+  const crypto = require("crypto");
+  
+  // Create payment order
+  const orderCode = crypto.randomInt(100000, 999999);
+  const body = {
+    orderCode,
+    amount: shopPackage.price,
+    description: `Gói dịch vụ ${shopPackage.name} cho quán ${shop.name}`,
+    cancelUrl: `${process.env.CLIENT_URL}/shop/packages/cancel`,
+    returnUrl: `${process.env.CLIENT_URL}/shop/packages/success`,
+  };
+  
+  let paymentLinkResponse;
+  
+  // Check if PayOS is configured
+  if (!process.env.PAYOS_CLIENT_ID || !process.env.PAYOS_API_KEY || !process.env.PAYOS_CHECKSUM_KEY) {
+    console.warn("PayOS not configured. Using mock payment response for development.");
+    
+    // Mock payment response for development
+    paymentLinkResponse = {
+      bin: "970422",
+      accountNumber: "19036225",
+      accountName: "NGUYEN VAN A",
+      amount: shopPackage.price,
+      description: body.description,
+      orderCode: orderCode,
+      currency: "VND",
+      paymentLinkId: `mock_${orderCode}`,
+      status: "PENDING",
+      checkoutUrl: `https://dev.pay.payos.vn/web/mock_${orderCode}`,
+      qrCode: `https://img.vietqr.io/image/970422-19036225-compact2.jpg?amount=${shopPackage.price}&addInfo=${encodeURIComponent(body.description)}`
+    };
+  } else {
+    // Initialize PayOS
+    const PayOS = require("@payos/node");
+    const payOS = new PayOS(
+      process.env.PAYOS_CLIENT_ID,
+      process.env.PAYOS_API_KEY,
+      process.env.PAYOS_CHECKSUM_KEY
+    );
+    
+    // Create real payment link
+    paymentLinkResponse = await payOS.createPaymentLink(body);
+  }
+  
+  // Create payment record
+  const payment = await paymentModel.create({
+    orderCode: body.orderCode,
+    user_id: userId,
+    shop_id: shop_id,
+    package_id: shopPackage._id,
+    amount: shopPackage.price,
+    status: "pending",
+    payment_type: "shop_package"
+  });
+  
+  return {
+    paymentId: payment._id.toString(),
+    paymentLinkResponse,
+    packageInfo: {
+      name: shopPackage.name,
+      price: shopPackage.price,
+      duration: shopPackage.duration,
+      description: shopPackage.description
+    }
+  };
+};
+
 module.exports = {
   createShop,
   updateShop,
@@ -3619,5 +3718,8 @@ module.exports = {
   getShopCustomerAnalytics,
   getShopReservationAnalytics,
   getShopPopularItemsAnalytics,
-  getShopTimeBasedAnalytics
+  getShopTimeBasedAnalytics,
+  buyShopPackage
 };
+
+

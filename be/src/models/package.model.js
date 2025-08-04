@@ -15,6 +15,12 @@ const packageSchema = new Schema({
     }],
     price: { type: Number, required: true },
     duration: { type: Number, required: true },
+    target_type: { 
+        type: String, 
+        enum: ['user', 'shop'], 
+        default: 'user',
+        required: true 
+    }
 }, { collection: COLLECTION_NAME, timestamps: true });
 
 module.exports = model(DOCUMENT_NAME, packageSchema);

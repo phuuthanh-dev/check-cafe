@@ -16,6 +16,7 @@ interface Package {
   description: string[]
   price: number
   duration: number
+  target_type: 'user' | 'shop'
   createdAt: string
   updatedAt: string
 }
@@ -166,7 +167,16 @@ export default function PackagesPage() {
                         ) : (
                           <PackageIcon className="w-6 h-6 text-primary" />
                         )}
-                        <h3 className="text-lg font-semibold">{pkg.name}</h3>
+                        <div>
+                          <h3 className="text-lg font-semibold">{pkg.name}</h3>
+                          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-1 ${
+                            pkg.target_type === 'shop' 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {pkg.target_type === 'shop' ? '🏪 Dành cho quán' : '👤 Dành cho người dùng'}
+                          </div>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button

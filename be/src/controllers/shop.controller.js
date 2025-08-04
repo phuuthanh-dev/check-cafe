@@ -291,6 +291,14 @@ class ShopController {
       data: result,
     }).send(res);
   });
+
+  buyShopPackage = asyncHandler(async (req, res) => {
+    const result = await shopService.buyShopPackage(req);
+    new OK({
+      message: "Shop package purchase initiated successfully",
+      data: result,
+    }).send(res);
+  });
 }
 
 module.exports = new ShopController();

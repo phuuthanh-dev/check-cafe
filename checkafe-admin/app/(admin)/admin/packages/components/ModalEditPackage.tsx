@@ -6,6 +6,8 @@ import authorizedAxiosInstance from "@/lib/axios"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, X, GripVertical } from "lucide-react"
@@ -23,6 +25,7 @@ interface PackageForm {
   price: number
   duration: number
   icon?: string
+  target_type: 'user' | 'shop'
 }
 
 interface DynamicInputListProps {
@@ -86,10 +89,12 @@ export default function ModalEditPackage({ open, onClose, pkg, onSuccess }: Moda
       price: 0,
       duration: 1,
       icon: "",
+      target_type: "user",
     }
   })
 
   const descriptionValue = watch("description") as string[] | string;
+  const targetTypeValue = watch("target_type");
 
   useEffect(() => {
     if (pkg) {
@@ -99,6 +104,7 @@ export default function ModalEditPackage({ open, onClose, pkg, onSuccess }: Moda
         price: pkg.price || 0,
         duration: pkg.duration || 1,
         icon: pkg.icon || "",
+        target_type: pkg.target_type || "user",
       })
     }
   }, [pkg, reset])
@@ -125,6 +131,31 @@ export default function ModalEditPackage({ open, onClose, pkg, onSuccess }: Moda
           <div>
             <label className="block font-medium">Tên gói <span className="text-red-500">*</span></label>
             <Input {...register("name", { required: true })} placeholder="Nhập tên gói" />
+          </div>
+          
+          <div className="space-y-3">
+            <Label className="text-base font-medium">Loại gói dịch vụ</Label>
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+              <div className="flex items-center space-x-3">
+                <div className="text-2xl">
+                  {targetTypeValue === 'shop' ? '🏪' : '👤'}
+                </div>
+                <div>
+                  <div className="font-medium">
+                    {targetTypeValue === 'shop' ? 'Dành cho quán cà phê' : 'Dành cho người dùng'}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {targetTypeValue === 'shop' 
+                      ? 'Gói dịch vụ nâng cấp cho chủ quán cà phê' 
+                      : 'Gói VIP cho người dùng cuối'}
+                  </div>
+                </div>
+              </div>
+              <Switch
+                checked={targetTypeValue === 'shop'}
+                onCheckedChange={(checked) => setValue('target_type', checked ? 'shop' : 'user')}
+              />
+            </div>
           </div>
           <div>
             <label className="block font-medium">Mô tả <span className="text-red-500">*</span></label>

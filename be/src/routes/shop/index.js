@@ -38,7 +38,15 @@ router.get("/:shopId/analytics/popular-items", shopController.getShopPopularItem
 // Get shop time-based analytics
 router.get("/:shopId/analytics/time-based", shopController.getShopTimeBasedAnalytics);
 
-// Get shop details - MUST be after /my-shop
+// Get shop packages - MUST be before /:shopId
+const packageController = require("../../controllers/package.controller");
+router.get(
+  "/packages",
+  checkRole([USER_ROLE.SHOP_OWNER]),
+  packageController.getPackages
+);
+
+// Get shop details - MUST be after /my-shop and /packages
 router.get("/:shopId", shopController.getShop);
 
 router.use(checkRole([USER_ROLE.SHOP_OWNER, USER_ROLE.ADMIN, USER_ROLE.STAFF]));
@@ -133,6 +141,13 @@ router.post(
   "/:shopId/verifications",
   uploadCloud.array("documents", 5),
   shopController.submitVerification
+);
+
+// Buy shop package (only for shop owners)
+router.post(
+  "/buy-package",
+  checkRole([USER_ROLE.SHOP_OWNER]),
+  shopController.buyShopPackage
 );
 
 module.exports = router;
