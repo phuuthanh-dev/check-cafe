@@ -9,6 +9,7 @@ const paymentController = require("../../controllers/payment.controller.js");
 router.use(checkAuth);
 
 router.get("/me", paymentController.getMyPayment);
+router.get("/shop", paymentController.getShopPayments);
 router.get("/:paymentId/status", paymentController.getPaymentStatus);
 
 

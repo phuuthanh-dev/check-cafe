@@ -3619,12 +3619,16 @@ const buyShopPackage = async (req) => {
   
   // Create payment order
   const orderCode = crypto.randomInt(100000, 999999);
+  
+  // PayOS requires description max 25 characters
+  const truncatedDescription = `Goi ${shopPackage.name}`.substring(0, 25);
+  
   const body = {
     orderCode,
     amount: shopPackage.price,
-    description: `Gói dịch vụ ${shopPackage.name} cho quán ${shop.name}`,
-    cancelUrl: `${process.env.CLIENT_URL}/shop/packages/cancel`,
-    returnUrl: `${process.env.CLIENT_URL}/shop/packages/success`,
+    description: truncatedDescription,
+    cancelUrl: `${process.env.CLIENT_URL}/dashboard/profile`,
+    returnUrl: `${process.env.CLIENT_URL}/dashboard/profile`,
   };
   
   let paymentLinkResponse;
@@ -3636,16 +3640,16 @@ const buyShopPackage = async (req) => {
     // Mock payment response for development
     paymentLinkResponse = {
       bin: "970422",
-      accountNumber: "19036225",
+      accountNumber: "19036225", 
       accountName: "NGUYEN VAN A",
       amount: shopPackage.price,
-      description: body.description,
+      description: truncatedDescription,
       orderCode: orderCode,
       currency: "VND",
       paymentLinkId: `mock_${orderCode}`,
       status: "PENDING",
       checkoutUrl: `https://dev.pay.payos.vn/web/mock_${orderCode}`,
-      qrCode: `https://img.vietqr.io/image/970422-19036225-compact2.jpg?amount=${shopPackage.price}&addInfo=${encodeURIComponent(body.description)}`
+      qrCode: `https://img.vietqr.io/image/970422-19036225-compact2.jpg?amount=${shopPackage.price}&addInfo=${encodeURIComponent(truncatedDescription)}`
     };
   } else {
     // Initialize PayOS
