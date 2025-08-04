@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TimePickerDemo } from "@/components/dashboard/time-picker"
-import { Upload, Clock, MapPin, Phone, Mail, Globe, FileText, CheckCircle, AlertCircle, Info, Plus, Edit, FileCheck, Eye, X } from "lucide-react"
+import { Upload, Clock, MapPin, Phone, Mail, Globe, FileText, CheckCircle, AlertCircle, Info, Plus, Edit, FileCheck, Eye, X, CreditCard, Star } from "lucide-react"
 import Image from "next/image"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import authorizedAxiosInstance from "@/lib/axios"
@@ -107,10 +107,21 @@ interface Amenity {
   label: string
 }
 
+interface Package {
+  _id: string
+  name: string
+  icon: string
+  description: string[]
+  price: number
+  duration: number
+  target_type: 'user' | 'shop'
+}
+
 export default function ShopProfilePage() {
   const [shopData, setShopData] = useState<ShopData | null>(null)
   const [themes, setThemes] = useState<Theme[]>([])
   const [amenities, setAmenities] = useState<Amenity[]>([])
+  const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [verificationStatus, setVerificationStatus] = useState<"pending" | "verified" | "rejected">("pending")
@@ -125,6 +136,11 @@ export default function ShopProfilePage() {
   const [uploadError, setUploadError] = useState("")
   const [documentType, setDocumentType] = useState("business_license")
   const [verificationNote, setVerificationNote] = useState("")
+  
+  // Package states
+  const [paymentInfo, setPaymentInfo] = useState<any>(null)
+  const [paymentId, setPaymentId] = useState("")
+  const [checkingPaymentStatus, setCheckingPaymentStatus] = useState(false)
 
   // Form data
   const [formData, setFormData] = useState({
@@ -144,6 +160,7 @@ export default function ShopProfilePage() {
     fetchShopData()
     fetchThemes()
     fetchAmenities()
+    fetchPackages()
   }, [])
 
   const fetchShopData = async () => {
@@ -203,6 +220,17 @@ export default function ShopProfilePage() {
     }
   }
 
+  const fetchPackages = async () => {
+    try {
+      const response = await authorizedAxiosInstance.get('/v1/shops/packages?target_type=shop')
+      if (response.data.status === 200) {
+        setPackages(response.data.data.packages)
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!shopData) return
@@ -237,6 +265,70 @@ export default function ShopProfilePage() {
       setVerificationStatus("pending")
     }, 1500)
   }
+
+  const handleBuyPackage = async (packageId: string) => {
+    try {
+      setIsSubmitting(true)
+      const response = await authorizedAxiosInstance.post('/v1/shops/buy-package', {
+        packageId
+      })
+      
+      if (response.data.status === 200) {
+        setPaymentInfo(response.data.data.paymentLinkResponse)
+        setPaymentId(response.data.data.paymentId)
+        toast.success('Đã tạo đơn hàng thành công. Vui lòng thanh toán.')
+      }
+    } catch (error: any) {
+      console.error('Error buying package:', error)
+      toast.error(error.response?.data?.message || 'Không thể tạo đơn hàng')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const resetPaymentStates = () => {
+    setPaymentInfo(null)
+    setPaymentId("")
+    setCheckingPaymentStatus(false)
+  }
+
+  // Check payment status
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout
+
+    const checkPaymentStatus = async () => {
+      if (paymentId && !checkingPaymentStatus) {
+        try {
+          setCheckingPaymentStatus(true)
+          const response = await authorizedAxiosInstance.get(`/v1/payments/${paymentId}/status`)
+          
+          if (response.data.data.status === "success") {
+            toast.success('Thanh toán thành công! Gói dịch vụ đã được kích hoạt.')
+            resetPaymentStates()
+            fetchShopData() // Refresh shop data
+          } else if (response.data.data.status === "failed") {
+            toast.error('Thanh toán thất bại. Vui lòng thử lại.')
+            resetPaymentStates()
+          }
+        } catch (error) {
+          console.error("Error checking payment status:", error)
+        } finally {
+          setCheckingPaymentStatus(false)
+        }
+      }
+    }
+
+    if (paymentId) {
+      checkPaymentStatus()
+      intervalId = setInterval(checkPaymentStatus, 5000)
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId)
+      }
+    }
+  }, [paymentId])
 
   const handleAmenityToggle = (amenityId: string) => {
     setFormData(prev => ({
@@ -426,10 +518,11 @@ export default function ShopProfilePage() {
       </div>
 
       <Tabs defaultValue="basic-info" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="basic-info">Thông tin cơ bản</TabsTrigger>
           <TabsTrigger value="business-hours">Giờ hoạt động</TabsTrigger>
           <TabsTrigger value="verification">Xác minh quán</TabsTrigger>
+          <TabsTrigger value="packages">Gói dịch vụ</TabsTrigger>
           <TabsTrigger value="preview">Xem trước</TabsTrigger>
         </TabsList>
 
@@ -1253,6 +1346,147 @@ export default function ShopProfilePage() {
                   </Button>
                 </div>
               </div>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
+        <TabsContent value="packages" className="space-y-4">
+          <div className="grid gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 className="text-2xl font-bold">Gói dịch vụ cho quán</h2>
+                <p className="text-gray-500">Nâng cấp quán của bạn với các gói dịch vụ premium.</p>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p>Đang tải gói dịch vụ...</p>
+              </div>
+            ) : packages.length === 0 ? (
+              <div className="text-center py-8">
+                <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 mb-4">Hiện tại chưa có gói dịch vụ nào khả dụng</p>
+              </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {packages.map((pkg, index) => (
+                  <Card key={pkg._id} className={`relative ${index === 0 ? 'border-primary shadow-lg' : ''}`}>
+                    {index === 0 && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <Badge className="bg-primary text-white px-3 py-1">
+                          <Star className="w-3 h-3 mr-1" />
+                          Khuyến nghị
+                        </Badge>
+                      </div>
+                    )}
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <CreditCard className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">{pkg.name}</CardTitle>
+                          <p className="text-2xl font-bold text-primary">
+                            {pkg.price.toLocaleString('vi-VN')}đ
+                          </p>
+                        </div>
+                      </div>
+                      <CardDescription>
+                        Thời hạn: {pkg.duration} ngày
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Mô tả:</h4>
+                        <ul className="space-y-1">
+                          {pkg.description.map((desc, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                              <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>{desc}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="pt-4 border-t">
+                        <Button 
+                          className="w-full" 
+                          onClick={() => handleBuyPackage(pkg._id)}
+                          disabled={isSubmitting}
+                          variant={index === 0 ? "default" : "outline"}
+                        >
+                          {isSubmitting ? "Đang xử lý..." : "Mua gói này"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Payment Modal */}
+          <Dialog 
+            open={!!paymentInfo} 
+            onOpenChange={(open) => {
+              if (!open && !checkingPaymentStatus) {
+                resetPaymentStates()
+              }
+            }}
+          >
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Thông tin thanh toán</DialogTitle>
+                <DialogDescription>
+                  Quét mã QR hoặc chuyển khoản theo thông tin bên dưới
+                </DialogDescription>
+              </DialogHeader>
+              
+              {paymentInfo && (
+                <div className="space-y-4">
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Tài khoản:</span>
+                      <span>{paymentInfo.accountName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Số tài khoản:</span>
+                      <span className="font-mono">{paymentInfo.accountNumber}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Số tiền:</span>
+                      <span className="font-bold text-primary">
+                        {paymentInfo.amount?.toLocaleString('vi-VN')}đ
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Nội dung:</span>
+                      <span className="text-right text-sm">{paymentInfo.description}</span>
+                    </div>
+                  </div>
+
+                  {paymentInfo.qrCode && (
+                    <div className="flex justify-center">
+                      <div className="bg-white p-4 rounded-lg border">
+                        <div className="w-48 h-48 bg-gray-100 rounded flex items-center justify-center">
+                          <span className="text-sm text-gray-500">QR Code</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500 mb-2">
+                      {checkingPaymentStatus ? 'Đang kiểm tra thanh toán...' : 'Chúng tôi sẽ tự động xác nhận thanh toán'}
+                    </p>
+                    {checkingPaymentStatus && (
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                    )}
+                  </div>
+                </div>
+              )}
             </DialogContent>
           </Dialog>
         </TabsContent>

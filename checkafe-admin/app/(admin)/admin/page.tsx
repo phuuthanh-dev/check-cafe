@@ -124,7 +124,9 @@ export default function AdminDashboardPage() {
       }
     } catch (error: any) {
       console.error("Error fetching dashboard stats:", error);
-      toast.error(error.response?.data?.message || "Không thể tải thông tin tổng quan");
+      toast.error(
+        error.response?.data?.message || "Không thể tải thông tin tổng quan"
+      );
     } finally {
       setLoading(false);
     }
@@ -150,11 +152,12 @@ export default function AdminDashboardPage() {
     ) : (
       <TrendingUp className="mr-1 h-3 w-3 transform rotate-180" />
     );
-    
+
     return (
       <p className={`text-xs ${color} flex items-center`}>
         {icon}
-        {isPositive ? "+" : ""}{value}% so với kỳ trước
+        {isPositive ? "+" : ""}
+        {value}% so với kỳ trước
       </p>
     );
   };
@@ -190,7 +193,7 @@ export default function AdminDashboardPage() {
 
       {/* Main Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Tổng người dùng
@@ -200,6 +203,30 @@ export default function AdminDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {loading ? "..." : stats?.totalUsers.toLocaleString()}
+            </div>
+            {!loading && stats && formatGrowth(stats.userGrowth)}
+          </CardContent>
+        </Card> */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Tổng người dùng
+            </CardTitle>
+            <Users className="h-4 w-4 text-gray-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {loading ? "..." : (stats?.userStats.customers || 0) + (stats?.userStats.shopOwners || 0)}
+            </div>
+            <div className="text-sm text-gray-500 mt-1">
+              <span>
+                Khách hàng:&nbsp;
+                {loading ? "..." : stats?.userStats.customers.toLocaleString()}
+              </span>
+              <span className="ml-4">
+                Chủ quán:&nbsp;
+                {loading ? "..." : stats?.userStats.shopOwners.toLocaleString()}
+              </span>
             </div>
             {!loading && stats && formatGrowth(stats.userGrowth)}
           </CardContent>
@@ -276,28 +303,42 @@ export default function AdminDashboardPage() {
             <Card className="lg:col-span-3">
               <CardHeader>
                 <CardTitle>Thống kê nhanh</CardTitle>
-                <CardDescription>
-                  Các chỉ số quan trọng hôm nay
-                </CardDescription>
+                <CardDescription>Các chỉ số quan trọng hôm nay</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {!loading && stats && (
                   <>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Đơn hoàn thành</span>
-                      <span className="font-medium">{stats.bookingStats.completionRate}%</span>
+                      <span className="text-sm text-gray-600">
+                        Đơn hoàn thành
+                      </span>
+                      <span className="font-medium">
+                        {stats.bookingStats.completionRate}%
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Quán hoạt động</span>
-                      <span className="font-medium">{stats.shopStats.activeRate}%</span>
+                      <span className="text-sm text-gray-600">
+                        Quán hoạt động
+                      </span>
+                      <span className="font-medium">
+                        {stats.shopStats.activeRate}%
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Xác minh thành công</span>
-                      <span className="font-medium">{stats.verificationStats.approvalRate}%</span>
+                      <span className="text-sm text-gray-600">
+                        Xác minh thành công
+                      </span>
+                      <span className="font-medium">
+                        {stats.verificationStats.approvalRate}%
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Gói VIP hoạt động</span>
-                      <span className="font-medium">{stats.packageStats.activeRate}%</span>
+                      <span className="text-sm text-gray-600">
+                        Gói VIP hoạt động
+                      </span>
+                      <span className="font-medium">
+                        {stats.packageStats.activeRate}%
+                      </span>
                     </div>
                   </>
                 )}
@@ -310,15 +351,24 @@ export default function AdminDashboardPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Khách hàng</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Khách hàng
+                </CardTitle>
                 <Users className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : stats?.userStats.customers.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : stats?.userStats.customers.toLocaleString()}
                 </div>
                 <p className="text-xs text-gray-500">
-                  {!loading && stats && `${((stats.userStats.customers / stats.userStats.total) * 100).toFixed(1)}% tổng users`}
+                  {!loading &&
+                    stats &&
+                    `${(
+                      (stats.userStats.customers / stats.userStats.total) *
+                      100
+                    ).toFixed(1)}% tổng users`}
                 </p>
               </CardContent>
             </Card>
@@ -329,16 +379,25 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : stats?.userStats.shopOwners.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : stats?.userStats.shopOwners.toLocaleString()}
                 </div>
                 <p className="text-xs text-gray-500">
-                  {!loading && stats && `${((stats.userStats.shopOwners / stats.userStats.total) * 100).toFixed(1)}% tổng users`}
+                  {!loading &&
+                    stats &&
+                    `${(
+                      (stats.userStats.shopOwners / stats.userStats.total) *
+                      100
+                    ).toFixed(1)}% tổng users`}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Users hoạt động</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Tài khoản hoạt động
+                </CardTitle>
                 <UserCheck className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
@@ -346,13 +405,15 @@ export default function AdminDashboardPage() {
                   {loading ? "..." : stats?.userStats.active.toLocaleString()}
                 </div>
                 <p className="text-xs text-green-500">
-                  {!loading && stats && `${stats.userStats.activeRate}% tổng users`}
+                  {!loading &&
+                    stats &&
+                    `${stats.userStats.activeRate}% tổng users`}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Users VIP</CardTitle>
+                <CardTitle className="text-sm font-medium">Tài khoản VIP</CardTitle>
                 <Crown className="h-4 w-4 text-yellow-500" />
               </CardHeader>
               <CardContent>
@@ -360,7 +421,9 @@ export default function AdminDashboardPage() {
                   {loading ? "..." : stats?.userStats.vip.toLocaleString()}
                 </div>
                 <p className="text-xs text-yellow-600">
-                  {!loading && stats && `${stats.userStats.vipRate}% tổng users`}
+                  {!loading &&
+                    stats &&
+                    `${stats.userStats.vipRate}% tổng users`}
                 </p>
               </CardContent>
             </Card>
@@ -371,7 +434,9 @@ export default function AdminDashboardPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Quán hoạt động</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Quán hoạt động
+                </CardTitle>
                 <Activity className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
@@ -379,7 +444,9 @@ export default function AdminDashboardPage() {
                   {loading ? "..." : stats?.shopStats.active.toLocaleString()}
                 </div>
                 <p className="text-xs text-green-500">
-                  {!loading && stats && `${stats.shopStats.activeRate}% tổng quán`}
+                  {!loading &&
+                    stats &&
+                    `${stats.shopStats.activeRate}% tổng quán`}
                 </p>
               </CardContent>
             </Card>
@@ -393,27 +460,43 @@ export default function AdminDashboardPage() {
                   {loading ? "..." : stats?.shopStats.pending.toLocaleString()}
                 </div>
                 <p className="text-xs text-yellow-600">
-                  {!loading && stats && `${((stats.shopStats.pending / stats.shopStats.total) * 100).toFixed(1)}% tổng quán`}
+                  {!loading &&
+                    stats &&
+                    `${(
+                      (stats.shopStats.pending / stats.shopStats.total) *
+                      100
+                    ).toFixed(1)}% tổng quán`}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Có hình ảnh</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Có hình ảnh
+                </CardTitle>
                 <Image className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : stats?.shopStats.withImages.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : stats?.shopStats.withImages.toLocaleString()}
                 </div>
                 <p className="text-xs text-blue-500">
-                  {!loading && stats && `${((stats.shopStats.withImages / stats.shopStats.total) * 100).toFixed(1)}% tổng quán`}
+                  {!loading &&
+                    stats &&
+                    `${(
+                      (stats.shopStats.withImages / stats.shopStats.total) *
+                      100
+                    ).toFixed(1)}% tổng quán`}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Hoàn thiện setup</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Hoàn thiện setup
+                </CardTitle>
                 <CheckCircle className="h-4 w-4 text-purple-500" />
               </CardHeader>
               <CardContent>
@@ -426,7 +509,7 @@ export default function AdminDashboardPage() {
               </CardContent>
             </Card>
           </div>
-          
+
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -435,24 +518,40 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : stats?.shopStats.withMenuItems.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : stats?.shopStats.withMenuItems.toLocaleString()}
                 </div>
                 <p className="text-xs text-orange-600">
-                  {!loading && stats && `${((stats.shopStats.withMenuItems / stats.shopStats.total) * 100).toFixed(1)}% tổng quán`}
+                  {!loading &&
+                    stats &&
+                    `${(
+                      (stats.shopStats.withMenuItems / stats.shopStats.total) *
+                      100
+                    ).toFixed(1)}% tổng quán`}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Có khung giờ</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Có khung giờ
+                </CardTitle>
                 <Timer className="h-4 w-4 text-indigo-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : stats?.shopStats.withTimeSlots.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : stats?.shopStats.withTimeSlots.toLocaleString()}
                 </div>
                 <p className="text-xs text-indigo-600">
-                  {!loading && stats && `${((stats.shopStats.withTimeSlots / stats.shopStats.total) * 100).toFixed(1)}% tổng quán`}
+                  {!loading &&
+                    stats &&
+                    `${(
+                      (stats.shopStats.withTimeSlots / stats.shopStats.total) *
+                      100
+                    ).toFixed(1)}% tổng quán`}
                 </p>
               </CardContent>
             </Card>
@@ -477,16 +576,18 @@ export default function AdminDashboardPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng xác minh</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Tổng xác minh
+                </CardTitle>
                 <CheckCircle className="h-4 w-4 text-gray-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : stats?.verificationStats.total.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : stats?.verificationStats.total.toLocaleString()}
                 </div>
-                <p className="text-xs text-gray-500">
-                  Tất cả yêu cầu xác minh
-                </p>
+                <p className="text-xs text-gray-500">Tất cả yêu cầu xác minh</p>
               </CardContent>
             </Card>
             <Card>
@@ -496,10 +597,18 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : stats?.verificationStats.pending.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : stats?.verificationStats.pending.toLocaleString()}
                 </div>
                 <p className="text-xs text-yellow-600">
-                  {!loading && stats && `${((stats.verificationStats.pending / stats.verificationStats.total) * 100).toFixed(1)}% tổng yêu cầu`}
+                  {!loading &&
+                    stats &&
+                    `${(
+                      (stats.verificationStats.pending /
+                        stats.verificationStats.total) *
+                      100
+                    ).toFixed(1)}% tổng yêu cầu`}
                 </p>
               </CardContent>
             </Card>
@@ -510,24 +619,38 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : stats?.verificationStats.approved.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : stats?.verificationStats.approved.toLocaleString()}
                 </div>
                 <p className="text-xs text-green-500">
-                  {!loading && stats && `${stats.verificationStats.approvalRate}% tỷ lệ duyệt`}
+                  {!loading &&
+                    stats &&
+                    `${stats.verificationStats.approvalRate}% tỷ lệ duyệt`}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Bị từ chối</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Bị từ chối
+                </CardTitle>
                 <XCircle className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : stats?.verificationStats.rejected.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : stats?.verificationStats.rejected.toLocaleString()}
                 </div>
                 <p className="text-xs text-red-500">
-                  {!loading && stats && `${((stats.verificationStats.rejected / stats.verificationStats.total) * 100).toFixed(1)}% tổng yêu cầu`}
+                  {!loading &&
+                    stats &&
+                    `${(
+                      (stats.verificationStats.rejected /
+                        stats.verificationStats.total) *
+                      100
+                    ).toFixed(1)}% tổng yêu cầu`}
                 </p>
               </CardContent>
             </Card>
@@ -538,62 +661,79 @@ export default function AdminDashboardPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng gói VIP</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Tổng gói VIP
+                </CardTitle>
                 <Package className="h-4 w-4 text-gray-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {loading ? "..." : stats?.packageStats.total.toLocaleString()}
                 </div>
-                <p className="text-xs text-gray-500">
-                  Tất cả gói đã mua
-                </p>
+                <p className="text-xs text-gray-500">Tất cả gói đã mua</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Đang hoạt động</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Đang hoạt động
+                </CardTitle>
                 <Activity className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : stats?.packageStats.active.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : stats?.packageStats.active.toLocaleString()}
                 </div>
                 <p className="text-xs text-green-500">
-                  {!loading && stats && `${stats.packageStats.activeRate}% tổng gói`}
+                  {!loading &&
+                    stats &&
+                    `${stats.packageStats.activeRate}% tổng gói`}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Đã hết hạn</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Đã hết hạn
+                </CardTitle>
                 <XCircle className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : stats?.packageStats.expired.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : stats?.packageStats.expired.toLocaleString()}
                 </div>
                 <p className="text-xs text-red-500">
-                  {!loading && stats && `${((stats.packageStats.expired / stats.packageStats.total) * 100).toFixed(1)}% tổng gói`}
+                  {!loading &&
+                    stats &&
+                    `${(
+                      (stats.packageStats.expired / stats.packageStats.total) *
+                      100
+                    ).toFixed(1)}% tổng gói`}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Mới tháng này</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Mới tháng này
+                </CardTitle>
                 <TrendingUp className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? "..." : stats?.packageStats.newThisMonth.toLocaleString()}
+                  {loading
+                    ? "..."
+                    : stats?.packageStats.newThisMonth.toLocaleString()}
                 </div>
-                <p className="text-xs text-blue-500">
-                  Gói mới được mua
-                </p>
+                <p className="text-xs text-blue-500">Gói mới được mua</p>
               </CardContent>
             </Card>
           </div>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Thống kê theme</CardTitle>
