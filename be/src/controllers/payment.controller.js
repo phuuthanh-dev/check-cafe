@@ -22,6 +22,14 @@ class PaymentController {
     }).send(res);
   });
 
+  getAllShopPayments = asyncHandler(async (req, res) => {
+    const result = await paymentService.getAllShopPayments(req);
+    new OK({
+      message: "Get all shop payments successfully",
+      data: result,
+    }).send(res);
+  });
+
   getPaymentStatus = asyncHandler(async (req, res) => {
     const result = await paymentService.getPaymentStatus(req);
     new OK({

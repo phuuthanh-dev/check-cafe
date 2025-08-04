@@ -45,9 +45,34 @@ interface UserPackage {
   createdAt: string
 }
 
+interface ShopPackage {
+  _id: string
+  shop_id: {
+    _id: string
+    name: string
+    address: string
+    phone: string
+    owner_id: {
+      _id: string
+      full_name: string
+      email: string
+    }
+  }
+  orderCode: string
+  package_id: Package
+  payment_id: {
+    amount: number
+    status: string
+    orderCode: string
+  }
+  created_at: string
+  status: string
+}
+
 export default function PackagesPage() {
   const [packages, setPackages] = useState<Package[]>([])
   const [userPackages, setUserPackages] = useState<UserPackage[]>([])
+  const [shopPackages, setShopPackages] = useState<ShopPackage[]>([])
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(false)
   const [tab, setTab] = useState("packages")
@@ -65,6 +90,7 @@ export default function PackagesPage() {
   useEffect(() => {
     if (tab === "packages") fetchPackages()
     if (tab === "userPackages") fetchUserPackages(currentPage)
+    if (tab === "shopPackages") fetchShopPackages(currentPage)
   }, [tab, currentPage])
 
   const fetchPackages = async () => {
@@ -97,12 +123,37 @@ export default function PackagesPage() {
     }
   }
 
+  const fetchShopPackages = async (page = 1) => {
+    setLoading(true)
+    try {
+      const res = await authorizedAxiosInstance.get(`/v1/payments/all-shop?page=${page}`)
+      setShopPackages(res.data?.data?.data || [])
+      setPaginationMetadata(res.data?.data?.metadata || {
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 1
+      })
+    } catch (err) {
+      // handle error
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const filteredPackages = packages.filter(pkg =>
     !search || pkg.name.toLowerCase().includes(search.toLowerCase())
   )
 
   const filteredUserPackages = userPackages.filter(up => {
     const pkg = up.package_id
+    return (
+      !search || (pkg?.name && pkg.name.toLowerCase().includes(search.toLowerCase()))
+    )
+  })
+
+  const filteredShopPackages = shopPackages.filter(sp => {
+    const pkg = sp.package_id
     return (
       !search || (pkg?.name && pkg.name.toLowerCase().includes(search.toLowerCase()))
     )
@@ -120,6 +171,7 @@ export default function PackagesPage() {
             <TabsList>
               <TabsTrigger value="packages">Danh sách gói</TabsTrigger>
               <TabsTrigger value="userPackages">Giao dịch người dùng</TabsTrigger>
+              <TabsTrigger value="shopPackages">Giao dịch quán</TabsTrigger>
             </TabsList>
           </div>
           <div className="flex items-center gap-4">
@@ -380,6 +432,164 @@ export default function PackagesPage() {
           </div>
         </TabsContent>
 
+        <TabsContent value="shopPackages">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Star className="w-6 h-6 text-yellow-400" />
+                <h3 className="text-lg font-semibold">Danh sách giao dịch gói dịch vụ quán</h3>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="bg-gray-50 rounded-lg p-4 animate-pulse">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                      </div>
+                      <div className="w-24 h-8 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredShopPackages.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                  <PackageIcon className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">Chưa có giao dịch nào</h3>
+                <p className="text-gray-500">Danh sách giao dịch gói dịch vụ quán sẽ xuất hiện ở đây</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="font-semibold">Thông tin quán</TableHead>
+                        <TableHead className="font-semibold">Gói dịch vụ</TableHead>
+                        <TableHead className="font-semibold">Thời gian</TableHead>
+                        <TableHead className="font-semibold">Thanh toán</TableHead>
+                        {/* <TableHead className="font-semibold text-center">Trạng thái</TableHead> */}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredShopPackages.map(sp => (
+                        <TableRow key={sp._id} className="hover:bg-gray-50">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                                {sp.shop_id?.name?.charAt(0) || '?'}
+                              </div>
+                              <div>
+                                <div className="font-medium text-gray-900">{sp.shop_id?.name}</div>
+                                <div className="text-sm text-gray-500">{sp.shop_id?.address}</div>
+                                <div className="text-sm text-gray-500">{sp.shop_id?.phone}</div>
+                                <div className="text-sm text-gray-500">Chủ quán: {sp.shop_id?.owner_id?.full_name}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium text-gray-900">{sp.package_id?.name}</div>
+                            <div className="text-sm text-gray-500">
+                              {sp.package_id?.price?.toLocaleString()}đ / {sp.package_id?.duration} ngày
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium text-gray-900">
+                              {new Date(sp.created_at).toLocaleDateString('vi-VN')}
+                            </div>
+                            {/* <div className="text-sm text-gray-500">
+                              {new Date(sp.createdAt).toLocaleTimeString('vi-VN')}
+                            </div> */}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium text-gray-900">
+                              {sp.package_id?.price?.toLocaleString()}đ
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              Mã: {sp.orderCode}
+                            </div>
+                          </TableCell>
+                          {/* <TableCell className="text-center">
+                            <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                              ${sp.status === 'success' ? 'bg-green-100 text-green-800' : 
+                                sp.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                sp.status === 'failed' ? 'bg-red-100 text-red-800' : 
+                                'bg-gray-100 text-gray-800'}`}>
+                              {sp.status === 'success' ? 'Thành công' :
+                               sp.status === 'pending' ? 'Đang xử lý' :
+                               sp.status === 'failed' ? 'Thất bại' : 
+                               'Không xác định'}
+                            </div>
+                          </TableCell> */}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {!loading && filteredShopPackages.length > 0 && (
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-gray-500">
+                      Hiển thị {((paginationMetadata.page - 1) * paginationMetadata.limit) + 1} đến{' '}
+                      {Math.min(paginationMetadata.page * paginationMetadata.limit, paginationMetadata.total)} trong số{' '}
+                      {paginationMetadata.total} kết quả
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCurrentPage(prev => {
+                            const newPage = prev - 1
+                            fetchShopPackages(newPage)
+                            return newPage
+                          })
+                        }}
+                        disabled={currentPage <= 1}
+                      >
+                        Trang trước
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: paginationMetadata.totalPages }, (_, i) => i + 1).map(page => (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage(page)
+                              fetchShopPackages(page)
+                            }}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCurrentPage(prev => {
+                            const newPage = prev + 1
+                            fetchShopPackages(newPage)
+                            return newPage
+                          })
+                        }}
+                        disabled={currentPage >= paginationMetadata.totalPages}
+                      >
+                        Trang sau
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
 
       <ModalCreatePackage open={createOpen} onClose={() => setCreateOpen(false)} onSuccess={fetchPackages} />
