@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TimePickerDemo } from "@/components/dashboard/time-picker"
-import { Upload, Clock, MapPin, Phone, Mail, Globe, FileText, CheckCircle, AlertCircle, Info, Plus, Edit, FileCheck, Eye, X, CreditCard, Star } from "lucide-react"
+import { Upload, Clock, MapPin, Phone, Mail, Globe, FileText, CheckCircle, AlertCircle, Info, Plus, Edit, FileCheck, Eye, X, CreditCard, Star, Copy, ExternalLink } from "lucide-react"
 import Image from "next/image"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import authorizedAxiosInstance from "@/lib/axios"
@@ -117,11 +117,22 @@ interface Package {
   target_type: 'user' | 'shop'
 }
 
+interface ShopPayment {
+  _id: string
+  orderCode: string
+  amount: number
+  status: string
+  created_at: string
+  updated_at: string
+  package_id: Package
+}
+
 export default function ShopProfilePage() {
   const [shopData, setShopData] = useState<ShopData | null>(null)
   const [themes, setThemes] = useState<Theme[]>([])
   const [amenities, setAmenities] = useState<Amenity[]>([])
   const [packages, setPackages] = useState<Package[]>([])
+  const [shopPayments, setShopPayments] = useState<ShopPayment[]>([])
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [verificationStatus, setVerificationStatus] = useState<"pending" | "verified" | "rejected">("pending")
@@ -161,6 +172,7 @@ export default function ShopProfilePage() {
     fetchThemes()
     fetchAmenities()
     fetchPackages()
+    fetchShopPayments()
   }, [])
 
   const fetchShopData = async () => {
@@ -231,6 +243,17 @@ export default function ShopProfilePage() {
     }
   }
 
+  const fetchShopPayments = async () => {
+    try {
+      const response = await authorizedAxiosInstance.get('/v1/payments/shop')
+      if (response.data.status === 200) {
+        setShopPayments(response.data.data.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching shop payments:', error)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!shopData) return
@@ -292,6 +315,20 @@ export default function ShopProfilePage() {
     setCheckingPaymentStatus(false)
   }
 
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success(`Đã copy ${label}`)
+    }).catch(() => {
+      toast.error(`Không thể copy ${label}`)
+    })
+  }
+
+  const openPaymentLink = () => {
+    if (paymentInfo?.checkoutUrl) {
+      window.open(paymentInfo.checkoutUrl, '_blank')
+    }
+  }
+
   // Check payment status
   useEffect(() => {
     let intervalId: NodeJS.Timeout
@@ -306,6 +343,7 @@ export default function ShopProfilePage() {
             toast.success('Thanh toán thành công! Gói dịch vụ đã được kích hoạt.')
             resetPaymentStates()
             fetchShopData() // Refresh shop data
+            fetchShopPayments() // Refresh payments
           } else if (response.data.data.status === "failed") {
             toast.error('Thanh toán thất bại. Vui lòng thử lại.')
             resetPaymentStates()
@@ -1359,10 +1397,110 @@ export default function ShopProfilePage() {
               </div>
             </div>
 
+            {/* Current Active Package */}
+            {shopPayments.length > 0 && shopPayments.some(payment => payment.status === 'success') && (
+              <Card className="border-green-200 bg-green-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-green-800">
+                    <CheckCircle className="w-5 h-5" />
+                    Gói dịch vụ hiện tại
+                  </CardTitle>
+                  <CardDescription className="text-green-700">
+                    Quán của bạn đang sử dụng gói dịch vụ premium
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {shopPayments
+                    .filter(payment => payment.status === 'success')
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                    .slice(0, 1)
+                    .map((payment) => (
+                      <div key={payment._id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-green-200">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <CreditCard className="w-6 h-6 text-green-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-green-900">{payment.package_id.name}</h4>
+                            <p className="text-sm text-green-700">
+                              Mua ngày: {new Date(payment.created_at).toLocaleDateString('vi-VN')}
+                            </p>
+                            <p className="text-sm text-green-700">
+                              Thời hạn: {payment.package_id.duration} ngày
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-green-900">
+                            {payment.amount.toLocaleString('vi-VN')}đ
+                          </div>
+                          <Badge className="bg-green-100 text-green-800 border-green-200">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Đang hoạt động
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Payment History */}
+            {shopPayments.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Lịch sử thanh toán</CardTitle>
+                  <CardDescription>Danh sách các gói dịch vụ đã mua</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {shopPayments
+                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                      .map((payment) => (
+                        <div key={payment._id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <CreditCard className="w-5 h-5 text-gray-600" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium">{payment.package_id.name}</h4>
+                              <p className="text-sm text-gray-500">
+                                {new Date(payment.created_at).toLocaleDateString('vi-VN')} - {payment.orderCode}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">{payment.amount.toLocaleString('vi-VN')}đ</div>
+                            <Badge 
+                              variant={payment.status === 'success' ? 'default' : payment.status === 'pending' ? 'secondary' : 'destructive'}
+                              className="text-xs"
+                            >
+                              {payment.status === 'success' ? 'Thành công' : 
+                               payment.status === 'pending' ? 'Đang xử lý' : 'Thất bại'}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {loading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                 <p>Đang tải gói dịch vụ...</p>
+              </div>
+            ) : packages.filter(pkg => {
+                const hasActivePayment = shopPayments.some(
+                  payment => payment.package_id._id === pkg._id && payment.status === 'success'
+                );
+                return !hasActivePayment;
+              }).length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Tất cả gói dịch vụ đã được mua</h3>
+                <p className="text-gray-500 mb-4">Quán của bạn đã sở hữu tất cả các gói dịch vụ premium</p>
               </div>
             ) : packages.length === 0 ? (
               <div className="text-center py-8">
@@ -1371,7 +1509,15 @@ export default function ShopProfilePage() {
               </div>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {packages.map((pkg, index) => (
+                {packages
+                  .filter(pkg => {
+                    // Ẩn gói đã mua thành công
+                    const hasActivePayment = shopPayments.some(
+                      payment => payment.package_id._id === pkg._id && payment.status === 'success'
+                    );
+                    return !hasActivePayment;
+                  })
+                  .map((pkg, index) => (
                   <Card key={pkg._id} className={`relative ${index === 0 ? 'border-primary shadow-lg' : ''}`}>
                     {index === 0 && (
                       <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -1451,9 +1597,18 @@ export default function ShopProfilePage() {
                       <span className="font-medium">Tài khoản:</span>
                       <span>{paymentInfo.accountName}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="font-medium">Số tài khoản:</span>
-                      <span className="font-mono">{paymentInfo.accountNumber}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono">{paymentInfo.accountNumber}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => copyToClipboard(paymentInfo.accountNumber, 'số tài khoản')}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Số tiền:</span>
@@ -1461,29 +1616,68 @@ export default function ShopProfilePage() {
                         {paymentInfo.amount?.toLocaleString('vi-VN')}đ
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="font-medium">Nội dung:</span>
-                      <span className="text-right text-sm">{paymentInfo.description}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-right text-sm">{paymentInfo.description}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => copyToClipboard(paymentInfo.description, 'nội dung chuyển khoản')}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
                   {paymentInfo.qrCode && (
                     <div className="flex justify-center">
-                      <div className="bg-white p-4 rounded-lg border">
-                        <div className="w-48 h-48 bg-gray-100 rounded flex items-center justify-center">
-                          <span className="text-sm text-gray-500">QR Code</span>
-                        </div>
-                      </div>
+                      {/* <div className="bg-white p-4 rounded-lg border"> */}
+                        {/* <img 
+                          src={paymentInfo.qrCode} 
+                          alt="QR Code thanh toán"
+                          className="w-48 h-48 object-contain"
+                          onError={(e) => {
+                            console.error('QR Code load error:', e);
+                            const fallback = document.createElement('div');
+                            fallback.className = 'w-48 h-48 bg-gray-100 rounded flex items-center justify-center flex-col';
+                            fallback.innerHTML = `
+                              <div class="text-center">
+                                <div class="text-2xl mb-2">📱</div>
+                                <div class="text-sm text-gray-500">QR Code không khả dụng</div>
+                                <div class="text-xs text-gray-400 mt-1">Vui lòng chuyển khoản thủ công</div>
+                              </div>
+                            `;
+                            e.currentTarget.parentNode?.replaceChild(fallback, e.currentTarget);
+                          }}
+                        /> */}
+                      {/* </div> */}
                     </div>
                   )}
 
-                  <div className="text-center">
-                    <p className="text-sm text-gray-500 mb-2">
-                      {checkingPaymentStatus ? 'Đang kiểm tra thanh toán...' : 'Chúng tôi sẽ tự động xác nhận thanh toán'}
-                    </p>
-                    {checkingPaymentStatus && (
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                  <div className="space-y-3">
+                    {paymentInfo.checkoutUrl && (
+                      <div className="flex justify-center">
+                        <Button
+                          onClick={openPaymentLink}
+                          className="w-full max-w-xs bg-primary text-white"
+                          variant="outline"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Thanh toán
+                        </Button>
+                      </div>
                     )}
+                    
+                    {/* <div className="text-center">
+                      <p className="text-sm text-gray-500 mb-2">
+                        {checkingPaymentStatus ? 'Đang kiểm tra thanh toán...' : 'Chúng tôi sẽ tự động xác nhận thanh toán'}
+                      </p>
+                      {checkingPaymentStatus && (
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                      )}
+                    </div> */}
                   </div>
                 </div>
               )}
